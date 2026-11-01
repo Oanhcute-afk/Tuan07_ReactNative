@@ -4,7 +4,7 @@ import { LoadingView } from "../components/LoadingView";
 import { ErrorView } from "../components/ErrorView";
 import { getBookById } from "../services/bookService";
 import { getErrorMessage } from "../api/client";
-import { useCart } from "../store/hooks";
+import { useCart, useWishlist } from "../store/hooks";
 import { RootScreenProps } from "../navigation/types";
 import { Book } from "../types";
 import { colors, formatPrice, radius } from "../theme";
@@ -13,6 +13,7 @@ import { colors, formatPrice, radius } from "../theme";
 export function BookDetailScreen({ route }: RootScreenProps<"BookDetail">) {
   const { bookId } = route.params;
   const { add } = useCart();
+  const { isFavorite, toggle } = useWishlist();
 
   // BT7.5d: tạo state book / loading / error và hàm load() gọi getBookById(bookId); chạy trong useEffect([bookId])
   const [book, setBook] = useState<Book | null>(null);
@@ -40,10 +41,22 @@ export function BookDetailScreen({ route }: RootScreenProps<"BookDetail">) {
   if (loading) return <LoadingView />;
   if (error || !book) return <ErrorView message={error ?? "Không tìm thấy sách"} onRetry={load} />;
 
+  const favorite = isFavorite(book.id);
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={[styles.cover, { backgroundColor: book.color }]}>
         <Text style={styles.emoji}>{book.emoji}</Text>
+        {/* Nút yêu thích ♡/♥ dùng useWishlist */}
+        <Pressable
+          style={styles.heartBtn}
+          onPress={() => toggle(book.id)}
+          accessibilityLabel="Yêu thích"
+        >
+          <Text style={[styles.heartText, favorite && styles.heartTextActive]}>
+            {favorite ? "♥" : "♡"}
+          </Text>
+        </Pressable>
       </View>
       <Text style={styles.title}>{book.title}</Text>
       <Text style={styles.author}>{book.author}</Text>
@@ -73,8 +86,26 @@ export function BookDetailScreen({ route }: RootScreenProps<"BookDetail">) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, gap: 8 },
-  cover: { height: 220, borderRadius: radius.lg, alignItems: "center", justifyContent: "center" },
+  cover: { height: 220, borderRadius: radius.lg, alignItems: "center", justifyContent: "center", position: "relative" },
   emoji: { fontSize: 90 },
+  heartBtn: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  heartText: { fontSize: 24, color: colors.muted },
+  heartTextActive: { color: colors.heart },
   title: { fontSize: 22, fontWeight: "800", color: colors.text, marginTop: 8 },
   author: { color: colors.muted, fontSize: 15 },
   price: { fontSize: 20, fontWeight: "800", color: colors.indigo },
